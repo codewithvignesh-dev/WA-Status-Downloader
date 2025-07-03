@@ -1,7 +1,7 @@
 # 📄 VP Private License
 
 **Project Name**: WhatsApp Status Downloader  
-**Author**: Vigneshwaran P / [ @tg-darkespyt ](https://github.com/tg-darkespyt/)
+**Author**: Vigneshwaran P / [ @tg-darkespyt ](https://github.com/tg-darkespyt/)  
 **License Type**: Private & Confidential  
 
 ---
@@ -22,7 +22,7 @@ Any unauthorized use, distribution, or modification of this software will result
 ### 📬 Contact
 
 To request permission or report unauthorized use, contact:  
-📧 [vignesh8577@gmail.com]  
-📞 [+91 86789 96799 (whatsapp only)]
+📧 vignesh8577@gmail.com  
+📞 +91 86789 96799 (whatsapp only)
 
 © Vigneshwaran P [ @tg-darkespyt ](https://github.com/tg-darkespyt/). All rights reserved.

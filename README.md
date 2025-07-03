@@ -34,7 +34,7 @@ A simple and powerful Android app to view and download WhatsApp status images an
    - Browse to the project directory.
    - Open the `MainActivity.java` file located at:
      ```
-     app/src/main/java/com/vp/statusdownloader/MainActivity.java
+     WA-Status-Downloader/src/main/java/com/vp/statusdownloader/MainActivity.java
      ```
 
 3. **Check Project Structure**
@@ -43,7 +43,6 @@ A simple and powerful Android app to view and download WhatsApp status images an
 
    - `AndroidManifest.xml`
    - `MainActivity.java`
-   - `res/drawable/play.png`
    - `build.gradle` (optional for internal builds)
 
 4. **Run the App**
