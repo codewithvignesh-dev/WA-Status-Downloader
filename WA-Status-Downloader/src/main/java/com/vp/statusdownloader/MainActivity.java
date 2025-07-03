@@ -25,6 +25,10 @@ import android.graphics.Rect;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.PorterDuff;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
 
 public class MainActivity extends Activity {
 
@@ -34,6 +38,7 @@ public class MainActivity extends Activity {
     private GridLayout layoutImages;
     private GridLayout layoutVideos;
     private LinearLayout contentLayout;
+    private ProgressBar loadingSpinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +89,19 @@ public class MainActivity extends Activity {
 
         contentLayout = new LinearLayout(this);
         contentLayout.setOrientation(LinearLayout.VERTICAL);
+        
+        loadingSpinner = new ProgressBar(this);
+        loadingSpinner.setIndeterminate(true);
+
+        LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        spinnerParams.gravity = Gravity.CENTER;
+        loadingSpinner.setLayoutParams(spinnerParams);
+
+        root.addView(loadingSpinner);
+        loadingSpinner.setVisibility(View.GONE);
 
         ScrollView scroll = new ScrollView(this);
         scroll.addView(contentLayout);
@@ -167,99 +185,137 @@ public class MainActivity extends Activity {
     }
 
     private void loadStatuses() {
-        File dir = new File(STATUS_PATH);
-        if (!dir.exists()) {
-            Toast.makeText(this, "Status folder not found", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        loadingSpinner.setVisibility(View.VISIBLE); // Show spinner
 
-        File[] files = dir.listFiles();
-        if (files == null || files.length == 0) {
-            Toast.makeText(this, "No files found", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final File dir = new File(STATUS_PATH);
+                    if (!dir.exists()) {
+                        runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    loadingSpinner.setVisibility(View.GONE);
+                                    Toast.makeText(MainActivity.this, "Status folder not found", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        return;
+                    }
 
-        int imgCount = 0;
-        int vidCount = 0;
+                    final File[] files = dir.listFiles();
+                    if (files == null || files.length == 0) {
+                        runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    loadingSpinner.setVisibility(View.GONE);
+                                    Toast.makeText(MainActivity.this, "No files found", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        return;
+                    }
 
-        for (final File file : files) {
-            if (file.getName().endsWith(".jpg") || file.getName().endsWith(".png")) {
-                Bitmap bmp = BitmapFactory.decodeFile(file.getAbsolutePath());
-                if (bmp != null) {
-                    final String path = file.getAbsolutePath();
-                    ImageView img = new ImageView(this);
-                    Bitmap scaledBmp = Bitmap.createScaledBitmap(bmp, 250, 250, false);
-                    img.setImageBitmap(getCircularBitmap(scaledBmp, 6, Color.GREEN));
-                    int size = getItemSize();
-                    GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-                    params.width = size;
-                    params.height = size;
-                    params.setMargins(10, 10, 10, 10);
-                    img.setLayoutParams(params);
-                    img.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    img.setPadding(10, 10, 10, 10);
-                    //img.setBackgroundResource(android.R.drawable.picture_frame);
-                    img.setOnClickListener(new View.OnClickListener() {
+                    final int[] imgCount = {0};
+                    final int[] vidCount = {0};
+
+                    runOnUiThread(new Runnable() {
                             @Override
-                            public void onClick(View v) {
-                                showFullImage(path);
+                            public void run() {
+                                Toast.makeText(MainActivity.this, "Loading the statuses, please wait", Toast.LENGTH_SHORT).show();
                             }
                         });
-                    layoutImages.addView(img);
-                    imgCount++;
-                }
-            } else if (file.getName().endsWith(".mp4")) {
-                final String videoPath = file.getAbsolutePath();
-                ImageView thumb = new ImageView(this);
-                // ✅ Generate thumbnail from video
-                Bitmap bmp = ThumbnailUtils.createVideoThumbnail(videoPath, MediaStore.Video.Thumbnails.MINI_KIND);
 
-                // Fallback if thumbnail fails
-                if (bmp == null) {
-                    bmp = BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_play);
-                }
-                Bitmap scaledBmp = Bitmap.createScaledBitmap(bmp, 250, 250, false);
-                thumb.setImageBitmap(getCircularBitmap(scaledBmp, 6, Color.GREEN));
-                int size = getItemSize();
-                GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-                params.width = size;
-                params.height = size;
-                params.setMargins(10, 10, 10, 10);
-                thumb.setLayoutParams(params);
-                thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                thumb.setPadding(10, 10, 10, 10);
-                
-                // Play icon
-                ImageView playIcon = new ImageView(this);
-                playIcon.setImageResource(R.drawable.play); // Make sure play.png is in res/drawable/
-                FrameLayout.LayoutParams iconParams = new FrameLayout.LayoutParams(80, 80); // or dynamic size
-                iconParams.gravity = Gravity.CENTER;
-                playIcon.setLayoutParams(iconParams);
-                
-                // FrameLayout to hold both
-                FrameLayout frame = new FrameLayout(this);
-                FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(size, size);
-                frameParams.setMargins(10, 10, 10, 10);
-                frame.setLayoutParams(frameParams);
-                
-                // Add views
-                frame.addView(thumb);
-                frame.addView(playIcon);
-                
-                //thumb.setBackgroundResource(android.R.drawable.picture_frame);
-                frame.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            showFullVideo(videoPath);
+                    for (final File file : files) {
+                        if (file.getName().endsWith(".jpg") || file.getName().endsWith(".png")) {
+                            final Bitmap bmp = BitmapFactory.decodeFile(file.getAbsolutePath());
+                            if (bmp != null) {
+                                final String path = file.getAbsolutePath();
+                                runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            int size = getItemSize();
+                                            ImageView img = new ImageView(MainActivity.this);
+                                            Bitmap scaledBmp = Bitmap.createScaledBitmap(bmp, 250, 250, false);
+                                            img.setImageBitmap(getCircularBitmap(scaledBmp, 6, Color.GREEN));
+
+                                            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+                                            params.width = size;
+                                            params.height = size;
+                                            params.setMargins(10, 10, 10, 10);
+                                            img.setLayoutParams(params);
+                                            img.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                            img.setPadding(10, 10, 10, 10);
+
+                                            img.setOnClickListener(new View.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(View v) {
+                                                        showFullImage(path);
+                                                    }
+                                                });
+
+                                            layoutImages.addView(img);
+                                        }
+                                    });
+                                imgCount[0]++;
+                            }
+                        } else if (file.getName().endsWith(".mp4")) {
+                            final String videoPath = file.getAbsolutePath();
+                            Bitmap bmp = ThumbnailUtils.createVideoThumbnail(videoPath, MediaStore.Video.Thumbnails.MINI_KIND);
+                            if (bmp == null) {
+                                bmp = BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_play);
+                            }
+                            final Bitmap finalBmp = bmp;
+
+                            runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        int size = getItemSize();
+
+                                        ImageView thumb = new ImageView(MainActivity.this);
+                                        Bitmap scaledBmp = Bitmap.createScaledBitmap(finalBmp, 250, 250, false);
+                                        thumb.setImageBitmap(getCircularBitmap(scaledBmp, 6, Color.GREEN));
+                                        thumb.setLayoutParams(new FrameLayout.LayoutParams(size, size));
+                                        thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                        thumb.setPadding(10, 10, 10, 10);
+
+                                        ImageView playIcon = new ImageView(MainActivity.this);
+                                        playIcon.setImageResource(R.drawable.ic_play);
+                                        FrameLayout.LayoutParams iconParams = new FrameLayout.LayoutParams(80, 80, Gravity.CENTER);
+                                        playIcon.setLayoutParams(iconParams);
+
+                                        FrameLayout frame = new FrameLayout(MainActivity.this);
+                                        FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(size, size);
+                                        frameParams.setMargins(10, 10, 10, 10);
+                                        frame.setLayoutParams(frameParams);
+
+                                        frame.addView(thumb);
+                                        frame.addView(playIcon);
+
+                                        frame.setOnClickListener(new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View v) {
+                                                    showFullVideo(videoPath);
+                                                }
+                                            });
+
+                                        layoutVideos.addView(frame);
+                                    }
+                                });
+                            vidCount[0]++;
                         }
-                    });
-                layoutVideos.addView(frame);
-                vidCount++;
-            }
-        }
+                    }
 
-        Toast.makeText(this, "Loaded: " + imgCount + " images & " + vidCount + " videos", Toast.LENGTH_SHORT).show();
-        showTab("images");
+                    runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                loadingSpinner.setVisibility(View.GONE);
+                                Toast.makeText(MainActivity.this,
+                                               "Loaded: " + imgCount[0] + " images & " + vidCount[0] + " videos",
+                                               Toast.LENGTH_SHORT).show();
+                                showTab("images");
+                            }
+                        });
+                }
+            }).start();
     }
 
     private void showFullImage(final String path) {
@@ -280,8 +336,43 @@ public class MainActivity extends Activity {
         // Download button
         final Button downloadButton = new Button(this);
         downloadButton.setText("Download");
-        layout.addView(downloadButton);
+        downloadButton.setTextColor(Color.WHITE);
+        downloadButton.setAllCaps(false);
+        downloadButton.setTextSize(16f);
+        downloadButton.setTypeface(null, Typeface.BOLD);
 
+        // Load and resize the 500x500 icon to ~48x48dp (recommended)
+        Drawable rawIcon = getResources().getDrawable(R.drawable.ic_download);
+        Bitmap originalBitmap = ((BitmapDrawable) rawIcon).getBitmap();
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 96, 96, true); // 96px ≈ 48dp
+
+        Drawable icon = new BitmapDrawable(getResources(), scaledBitmap);
+        icon.setBounds(0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight());
+
+        downloadButton.setCompoundDrawables(icon, null, null, null);
+        downloadButton.setCompoundDrawablePadding(20); // spacing between icon and text
+
+        // Background styling
+        GradientDrawable background = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            new int[]{Color.parseColor("#4CAF50"), Color.parseColor("#2E7D32")}
+        );
+        background.setCornerRadius(60f);
+        background.setStroke(4, Color.parseColor("#1B5E20"));
+        downloadButton.setBackground(background);
+
+        // Layout and padding
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        btnParams.setMargins(0, 30, 0, 10);
+        downloadButton.setLayoutParams(btnParams);
+        downloadButton.setPadding(40, 25, 40, 25);
+
+        // Add to layout
+        layout.addView(downloadButton);
+        
         // Set layout in builder
         builder.setView(layout);
         builder.setPositiveButton("Close", null);
@@ -334,6 +425,41 @@ public class MainActivity extends Activity {
         // Download button
         final Button downloadButton = new Button(this);
         downloadButton.setText("Download");
+        downloadButton.setTextColor(Color.WHITE);
+        downloadButton.setAllCaps(false);
+        downloadButton.setTextSize(16f);
+        downloadButton.setTypeface(null, Typeface.BOLD);
+        
+        // Load and resize the 500x500 icon to ~48x48dp (recommended)
+        Drawable rawIcon = getResources().getDrawable(R.drawable.ic_download);
+        Bitmap originalBitmap = ((BitmapDrawable) rawIcon).getBitmap();
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 96, 96, true); // 96px ≈ 48dp
+
+        Drawable icon = new BitmapDrawable(getResources(), scaledBitmap);
+        icon.setBounds(0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight());
+
+        downloadButton.setCompoundDrawables(icon, null, null, null);
+        downloadButton.setCompoundDrawablePadding(20); // spacing between icon and text
+        
+        // Background styling
+        GradientDrawable background = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            new int[]{Color.parseColor("#4CAF50"), Color.parseColor("#2E7D32")}
+        );
+        background.setCornerRadius(60f);
+        background.setStroke(4, Color.parseColor("#1B5E20"));
+        downloadButton.setBackground(background);
+        
+        // Layout and padding
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        btnParams.setMargins(0, 30, 0, 10);
+        downloadButton.setLayoutParams(btnParams);
+        downloadButton.setPadding(40, 25, 40, 25);
+        
+        // Add to layout
         layout.addView(downloadButton);
 
         builder.setView(layout);
@@ -364,7 +490,7 @@ public class MainActivity extends Activity {
     
     private int getItemSize() {
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int spacing = 20; // total spacing including padding/margin
+        int spacing = 20;
         return (screenWidth / 3) - spacing;
     }
     
