@@ -1,5 +1,9 @@
 # 📱 WhatsApp Status Downloader (Android)
 
+<p align="center">
+    <img src="https://raw.githubusercontent.com/codewithvignesh-dev/WA-Status-Downloader/main/thumbnail.png" width="800">
+</p>
+
 A simple and powerful Android app to view and download WhatsApp status images and videos. Built entirely in Java with a fully dynamic UI (no XML). Optimized to run and build directly in **AIDE (Android IDE)** on your Android phone.
 
 ---
